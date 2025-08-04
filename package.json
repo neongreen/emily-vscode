@@ -23,7 +23,15 @@
       {
         "command": "emily.cycleEmoji",
         "title": "Emily: Cycle Emoji in Header",
-        "when": "editorLangId == markdown"
+        "enablement": "editorLangId == markdown"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "emily.cycleEmoji",
+        "key": "ctrl+k ctrl+e",
+        "mac": "cmd+k cmd+e",
+        "when": "editorLangId == markdown && editorTextFocus"
       }
     ],
     "configuration": {

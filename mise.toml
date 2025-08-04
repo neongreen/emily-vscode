@@ -19,3 +19,13 @@ run = "pnpm run lint"
 description = "Package VS Code extension"
 run = "pnpm exec vsce package --no-yarn --no-git-tag-version --out out/"
 depends = ["build"]
+
+[tasks."install:code"]
+description = "Install VS Code extension"
+run = "code --install-extension out/emily-1.0.0.vsix"
+depends = ["package"]
+
+[tasks."install:cursor"]
+description = "Install Cursor extension"
+run = "cursor --install-extension out/emily-1.0.0.vsix"
+depends = ["package"]
