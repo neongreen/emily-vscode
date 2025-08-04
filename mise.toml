@@ -1,3 +1,16 @@
 [tools]
 node = "24"
 pnpm = "latest"
+
+[tasks.build]
+description = "Build"
+run = "pnpm run compile"
+
+[tasks.test]
+description = "Run tests"
+run = "pnpm run test"
+depends = ["build"]
+
+[tasks.lint]
+description = "Run lint"
+run = "pnpm run lint"

@@ -3,7 +3,7 @@ import * as vscode from "vscode"
 export function activate(context: vscode.ExtensionContext) {
   console.log("Emily Emoji Cycler is now active!")
 
-  let disposable = vscode.commands.registerCommand("emily.cycleEmoji", () => {
+  const disposable = vscode.commands.registerCommand("emily.cycleEmoji", () => {
     const editor = vscode.window.activeTextEditor
     if (!editor) {
       vscode.window.showInformationMessage("No active editor found")
@@ -125,12 +125,16 @@ export function activate(context: vscode.ExtensionContext) {
           // Emoji was added, add the new emoji length to the cursor position
           const emojiLength = nextEmoji.length + 1 // +1 for the space
           newCursorPosition =
-            headerPrefixLength + emojiLength + Math.max(0, cursorInRemainingContent)
+            headerPrefixLength +
+            emojiLength +
+            Math.max(0, cursorInRemainingContent)
         } else {
           // Emoji was changed, add the new emoji length to the cursor position
           const emojiLength = nextEmoji.length + 1 // +1 for the space
           newCursorPosition =
-            headerPrefixLength + emojiLength + Math.max(0, cursorInRemainingContent)
+            headerPrefixLength +
+            emojiLength +
+            Math.max(0, cursorInRemainingContent)
         }
 
         // Set the new cursor position
