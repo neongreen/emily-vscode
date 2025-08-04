@@ -46,9 +46,9 @@
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "pretest": "pnpm run compile && pnpm run lint",
-    "lint": "biome lint src test",
-    "format": "biome format src test --write",
-    "check": "biome check src test",
+    "lint": "biome lint .",
+    "format": "biome format . --write",
+    "check": "biome check .",
     "test": "tsx test/cursor-position.test.ts"
   },
   "devDependencies": {

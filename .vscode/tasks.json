@@ -5,10 +5,7 @@
       "label": "Compile",
       "type": "shell",
       "command": "pnpm",
-      "args": [
-        "run",
-        "compile"
-      ],
+      "args": ["run", "compile"],
       "problemMatcher": []
     }
   ]

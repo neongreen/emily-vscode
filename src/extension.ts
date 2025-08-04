@@ -1,20 +1,18 @@
-import * as vscode from "vscode"
+import * as vscode from 'vscode'
 
 export function activate(context: vscode.ExtensionContext) {
-  console.log("Emily Emoji Cycler is now active!")
+  console.log('Emily Emoji Cycler is now active!')
 
-  const disposable = vscode.commands.registerCommand("emily.cycleEmoji", () => {
+  const disposable = vscode.commands.registerCommand('emily.cycleEmoji', () => {
     const editor = vscode.window.activeTextEditor
     if (!editor) {
-      vscode.window.showInformationMessage("No active editor found")
+      vscode.window.showInformationMessage('No active editor found')
       return
     }
 
     const document = editor.document
-    if (document.languageId !== "markdown") {
-      vscode.window.showInformationMessage(
-        "This command only works in markdown files"
-      )
+    if (document.languageId !== 'markdown') {
+      vscode.window.showInformationMessage('This command only works in markdown files')
       return
     }
 
@@ -25,18 +23,16 @@ export function activate(context: vscode.ExtensionContext) {
     // Check if we're on a markdown header line
     const headerMatch = lineText.match(/^(#{1,6})\s*(.*)$/)
     if (!headerMatch) {
-      vscode.window.showInformationMessage(
-        "Please place your cursor on a markdown header line"
-      )
+      vscode.window.showInformationMessage('Please place your cursor on a markdown header line')
       return
     }
 
-    const config = vscode.workspace.getConfiguration("emily")
-    const emojis = config.get<string[]>("emojis", [])
+    const config = vscode.workspace.getConfiguration('emily')
+    const emojis = config.get<string[]>('emojis', [])
 
     if (emojis.length === 0) {
       vscode.window.showInformationMessage(
-        "No emojis configured. Please add emojis to the extension settings."
+        'No emojis configured. Please add emojis to the extension settings.'
       )
       return
     }
@@ -50,7 +46,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Check if there's already an emoji at the start of the header content
     const emojiMatch = headerContent.match(/^(\S+)\s*(.*)$/)
-    let currentEmoji = ""
+    let currentEmoji = ''
     let remainingContent = headerContent
 
     if (emojiMatch) {
@@ -64,7 +60,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Calculate cursor position relative to the remaining content (after emoji)
     let cursorInRemainingContent: number
-    if (currentEmoji === "") {
+    if (currentEmoji === '') {
       // No emoji, cursor is relative to the entire header content
       cursorInRemainingContent = cursorInContent
     } else {
@@ -74,8 +70,8 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     // Find the next emoji in the cycle
-    let nextEmoji = ""
-    if (currentEmoji === "") {
+    let nextEmoji = ''
+    if (currentEmoji === '') {
       // No emoji currently, add the first one
       nextEmoji = emojis[0]
     } else {
@@ -91,8 +87,8 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     // If we're cycling back to the first emoji, remove the emoji entirely
-    if (nextEmoji === emojis[0] && currentEmoji !== "") {
-      nextEmoji = ""
+    if (nextEmoji === emojis[0] && currentEmoji !== '') {
+      nextEmoji = ''
     }
 
     // Construct the new header line
@@ -102,12 +98,7 @@ export function activate(context: vscode.ExtensionContext) {
     const newLineText = `${headerPrefix} ${newHeaderContent}`
 
     // Replace the line
-    const range = new vscode.Range(
-      line.lineNumber,
-      0,
-      line.lineNumber,
-      line.text.length
-    )
+    const range = new vscode.Range(line.lineNumber, 0, line.lineNumber, line.text.length)
 
     editor
       .edit((editBuilder) => {
@@ -117,31 +108,23 @@ export function activate(context: vscode.ExtensionContext) {
         // Calculate new cursor position
         let newCursorPosition: number
 
-        if (nextEmoji === "") {
+        if (nextEmoji === '') {
           // Emoji was removed, cursor position stays the same relative to content
-          newCursorPosition =
-            headerPrefixLength + Math.max(0, cursorInRemainingContent)
-        } else if (currentEmoji === "") {
+          newCursorPosition = headerPrefixLength + Math.max(0, cursorInRemainingContent)
+        } else if (currentEmoji === '') {
           // Emoji was added, add the new emoji length to the cursor position
           const emojiLength = nextEmoji.length + 1 // +1 for the space
           newCursorPosition =
-            headerPrefixLength +
-            emojiLength +
-            Math.max(0, cursorInRemainingContent)
+            headerPrefixLength + emojiLength + Math.max(0, cursorInRemainingContent)
         } else {
           // Emoji was changed, add the new emoji length to the cursor position
           const emojiLength = nextEmoji.length + 1 // +1 for the space
           newCursorPosition =
-            headerPrefixLength +
-            emojiLength +
-            Math.max(0, cursorInRemainingContent)
+            headerPrefixLength + emojiLength + Math.max(0, cursorInRemainingContent)
         }
 
         // Set the new cursor position
-        const newPosition = new vscode.Position(
-          position.line,
-          newCursorPosition
-        )
+        const newPosition = new vscode.Position(position.line, newCursorPosition)
         editor.selection = new vscode.Selection(newPosition, newPosition)
       })
   })
