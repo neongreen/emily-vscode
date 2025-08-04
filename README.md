@@ -1,14 +1,17 @@
 # Emily VSCode
 
-A VS Code extension that cycles through emojis in markdown headers.
+A VS Code extension with multiple features including emoji cycling in markdown headers and Haskell jump-to-definition support.
 
 ## Features
 
-- Cycle through configured emojis in markdown headers
+- **Emoji Cycling**: Cycle through configured emojis in markdown headers
+- **Haskell Jump to Definition**: Simple regex-based jump-to-definition for Haskell files (lightweight alternative to language server)
 - Customizable emoji list through settings
 - Works with all markdown header levels (#, ##, ###, etc.)
 
 ## Usage
+
+### Emoji Cycling
 
 1. Open a markdown file
 2. Place your cursor on a header line (e.g., `# My Header`)
@@ -18,6 +21,15 @@ A VS Code extension that cycles through emojis in markdown headers.
    - Second press: Replaces with second emoji (`# ❌ My Header`)
    - Continue cycling through all emojis
    - After the last emoji, it removes all emojis and goes back to plain header
+
+### Haskell Jump to Definition
+
+1. Open a Haskell file (`.hs` or `.lhs`)
+2. Place your cursor on any function name
+3. Use `F12` or `Cmd/Ctrl + Click` to jump to definition
+4. The extension will find all lines that start with that identifier followed by `::` or `=`
+
+**Note**: This feature assumes you already have the Haskell extension installed for syntax highlighting. It provides a lightweight alternative when a full language server is not available.
 
 ## Configuration
 
