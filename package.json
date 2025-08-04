@@ -22,7 +22,8 @@
     "commands": [
       {
         "command": "emily.cycleEmoji",
-        "title": "Emily: Cycle Emoji in Header"
+        "title": "Emily: Cycle Emoji in Header",
+        "when": "editorLangId == markdown"
       }
     ],
     "configuration": {
