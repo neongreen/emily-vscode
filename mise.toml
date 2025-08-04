@@ -14,3 +14,8 @@ depends = ["build"]
 [tasks.lint]
 description = "Run lint"
 run = "pnpm run lint"
+
+[tasks.package]
+description = "Package VS Code extension"
+run = "pnpm exec vsce package --no-yarn --no-git-tag-version --out out/"
+depends = ["build"]

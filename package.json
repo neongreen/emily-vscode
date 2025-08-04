@@ -4,6 +4,10 @@
   "description": "VS Code extension with emoji cycling and more features",
   "version": "1.0.0",
   "publisher": "emily",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/neongreen/emily-vscode.git"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -53,8 +57,9 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.1.3",
-    "@types/node": "^24.2.0",
+    "@types/node": "^24.0.0",
     "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.6.0",
     "tsx": "^4.20.3",
     "typescript": "^5.9.2"
   },
