@@ -1,0 +1,87 @@
+name: Build VSIX (Development)
+
+# This workflow builds VSIX packages on every push to main
+# for development and testing purposes
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.13.1
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Lint code
+        run: pnpm lint
+
+      - name: Build extension
+        run: pnpm compile
+
+      - name: Install vsce
+        run: pnpm add -g @vscode/vsce
+
+      - name: Package extension
+        run: vsce package --no-yarn --no-git-tag-version
+
+      - name: Upload VSIX as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: emily-vsix
+          path: "*.vsix"
+          retention-days: 30
+
+      - name: Create development release
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "dev-${{ github.sha }}"
+          name: "Development Build - ${{ github.sha }}"
+          body: |
+            Development build from commit ${{ github.sha }}
+
+            **This is an automated development build. For stable releases, use tagged releases.**
+
+            - Commit: ${{ github.sha }}
+            - Branch: ${{ github.ref_name }}
+            - Build Date: ${{ github.event.head_commit.timestamp }}
+          files: |
+            *.vsix
+          draft: false
+          prerelease: true
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

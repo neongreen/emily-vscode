@@ -49,3 +49,81 @@ pnpm run watch
 3. Run `pnpm run compile`
 4. Press F5 in VS Code to launch the extension in a new Extension Development Host window
 5. Open a markdown file and test the "Cycle Emoji in Header" command
+
+## Releases
+
+This project uses GitHub Actions for automated builds and releases:
+
+### 🚀 **Development Builds** (Every Push to Main)
+- **Trigger**: Every push to `main` branch
+- **What it does**: 
+  - Runs tests and linting
+  - Builds the extension
+  - Creates a VSIX package
+  - Uploads VSIX as a GitHub artifact (30-day retention)
+  - Creates a development release with tag `dev-<commit-sha>`
+- **Purpose**: Always have the latest version available for testing
+
+### 🏷️ **Stable Releases** (Tagged Versions)
+- **Trigger**: When you push a tag starting with `v` (e.g., `v1.0.0`)
+- **What it does**:
+  - Runs tests and linting
+  - Builds the extension
+  - Creates a VSIX package
+  - Publishes a stable GitHub release with the VSIX file attached
+- **Purpose**: Official releases for distribution
+
+**Note**: Both workflows create VSIX files for manual installation only. They do NOT publish to the VS Code Marketplace.
+
+To create a release:
+
+```bash
+# Option 1: Use the release script (recommended)
+./scripts/release.sh patch  # for 1.0.0 -> 1.0.1
+./scripts/release.sh minor  # for 1.0.0 -> 1.1.0
+./scripts/release.sh major  # for 1.0.0 -> 2.0.0
+
+# Option 2: Manual process
+# Update version in package.json
+# Create and push a tag
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+### 📦 **Installing VSIX Files**
+
+VSIX files are available in two places:
+
+1. **Development Builds**: GitHub releases with tags like `dev-<commit-sha>`
+2. **Stable Releases**: GitHub releases with tags like `v1.0.0`
+
+To install a VSIX file:
+1. Download the VSIX file from the GitHub release
+2. Open VS Code
+3. Go to Extensions (Ctrl+Shift+X)
+4. Click the "..." menu and select "Install from VSIX..."
+5. Select the downloaded VSIX file
+
+**Pro tip**: For development, you can always get the latest version from the most recent development release!
+
+## Development
+
+The project includes CI/CD workflows:
+
+- **CI**: Runs on pull requests and pushes to main/master branch
+  - Installs dependencies
+  - Runs tests
+  - Lints code
+  - Checks formatting
+  - Builds the extension
+
+- **Build VSIX (Development)**: Runs on every push to main/master
+  - Performs all CI checks
+  - Creates VSIX package
+  - Uploads VSIX as artifact
+  - Creates development release with `dev-<commit-sha>` tag
+
+- **Release (Stable)**: Runs when tags are pushed
+  - Performs all CI checks
+  - Creates VSIX package
+  - Publishes stable GitHub release (VSIX file only, no marketplace publishing)
