@@ -25,6 +25,11 @@
         "command": "emily.cycleEmoji",
         "title": "Emily: Cycle Emoji in Header",
         "enablement": "editorLangId == markdown"
+      },
+      {
+        "command": "emily.dumpDefinitions",
+        "title": "Emily: Dump All Definitions (Developer)",
+        "enablement": "editorLangId == haskell"
       }
     ],
     "keybindings": [

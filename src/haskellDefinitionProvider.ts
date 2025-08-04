@@ -24,21 +24,37 @@ export class HaskellDefinitionProvider implements vscode.DefinitionProvider {
 
     // Find all lines that start with this identifier (potential definitions)
     const definitions: vscode.Location[] = []
+    const typeSignatures: vscode.Location[] = []
 
     // Search in the current document first
     for (let i = 0; i < document.lineCount; i++) {
       const line = document.lineAt(i)
       const lineText = line.text.trim()
 
-      // Check if line starts with the identifier (Haskell function definition pattern)
-      // This regex matches lines that start with the identifier followed by whitespace, ::, or =
-      const definitionPattern = new RegExp(`^${identifier}\\s*(::|=)`, 'i')
-
-      if (definitionPattern.test(lineText)) {
+      // Check for function definitions (lines with =)
+      const functionPattern = new RegExp(`^${identifier}\\s*=`, 'i')
+      if (functionPattern.test(lineText)) {
         const range = new vscode.Range(i, 0, i, line.text.length)
         const location = new vscode.Location(document.uri, range)
         definitions.push(location)
+        emilyOutputChannel.appendLine(`Emily: Found function definition at line ${i + 1}`)
       }
+
+      // Check for type signatures (lines with ::)
+      const typePattern = new RegExp(`^${identifier}\\s*::`, 'i')
+      if (typePattern.test(lineText)) {
+        const range = new vscode.Range(i, 0, i, line.text.length)
+        const location = new vscode.Location(document.uri, range)
+        typeSignatures.push(location)
+        emilyOutputChannel.appendLine(`Emily: Found type signature at line ${i + 1}`)
+      }
+    }
+
+    // If we found type signatures, return those. Otherwise, return function definitions.
+    if (typeSignatures.length > 0) {
+      return typeSignatures
+    } else if (definitions.length > 0) {
+      return definitions
     }
 
     // If not found in current document, search in other Haskell files in the workspace
@@ -54,6 +70,8 @@ export class HaskellDefinitionProvider implements vscode.DefinitionProvider {
 
           let filesProcessed = 0
           const totalFiles = haskellFiles.filter((uri) => uri.fsPath !== document.uri.fsPath).length
+          const crossFileDefinitions: vscode.Location[] = []
+          const crossFileTypeSignatures: vscode.Location[] = []
 
           if (totalFiles === 0) {
             emilyOutputChannel.appendLine(`Emily: Found ${definitions.length} definition(s) total`)
@@ -75,14 +93,25 @@ export class HaskellDefinitionProvider implements vscode.DefinitionProvider {
                   const line = fileDocument.lineAt(i)
                   const lineText = line.text.trim()
 
-                  // Check for function definitions
-                  const definitionPattern = new RegExp(`^${identifier}\\s*(::|=)`, 'i')
-                  if (definitionPattern.test(lineText)) {
+                  // Check for function definitions (lines with =)
+                  const functionPattern = new RegExp(`^${identifier}\\s*=`, 'i')
+                  if (functionPattern.test(lineText)) {
                     const range = new vscode.Range(i, 0, i, line.text.length)
                     const location = new vscode.Location(fileUri, range)
-                    definitions.push(location)
+                    crossFileDefinitions.push(location)
                     emilyOutputChannel.appendLine(
-                      `Emily: Found definition in ${fileDocument.fileName} at line ${i + 1}`
+                      `Emily: Found function definition in ${fileDocument.fileName} at line ${i + 1}`
+                    )
+                  }
+
+                  // Check for type signatures (lines with ::)
+                  const typePattern = new RegExp(`^${identifier}\\s*::`, 'i')
+                  if (typePattern.test(lineText)) {
+                    const range = new vscode.Range(i, 0, i, line.text.length)
+                    const location = new vscode.Location(fileUri, range)
+                    crossFileTypeSignatures.push(location)
+                    emilyOutputChannel.appendLine(
+                      `Emily: Found type signature in ${fileDocument.fileName} at line ${i + 1}`
                     )
                   }
 
@@ -111,10 +140,12 @@ export class HaskellDefinitionProvider implements vscode.DefinitionProvider {
 
                 filesProcessed++
                 if (filesProcessed === totalFiles) {
+                  // Prioritize type signatures over function definitions
+                  const allResults = [...crossFileTypeSignatures, ...crossFileDefinitions]
                   emilyOutputChannel.appendLine(
-                    `Emily: Found ${definitions.length} definition(s) total`
+                    `Emily: Found ${allResults.length} definition(s) total`
                   )
-                  resolve(definitions)
+                  resolve(allResults)
                 }
               },
               (error: any) => {
@@ -123,10 +154,12 @@ export class HaskellDefinitionProvider implements vscode.DefinitionProvider {
                 )
                 filesProcessed++
                 if (filesProcessed === totalFiles) {
+                  // Prioritize type signatures over function definitions
+                  const allResults = [...crossFileTypeSignatures, ...crossFileDefinitions]
                   emilyOutputChannel.appendLine(
-                    `Emily: Found ${definitions.length} definition(s) total`
+                    `Emily: Found ${allResults.length} definition(s) total`
                   )
-                  resolve(definitions)
+                  resolve(allResults)
                 }
               }
             )

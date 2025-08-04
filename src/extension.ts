@@ -1,4 +1,5 @@
 import * as vscode from 'vscode'
+import { dumpAllDefinitions } from './commands/dumpDefinitions'
 import { cycleEmoji } from './emojiCycler'
 import { HaskellDefinitionProvider } from './haskellDefinitionProvider'
 
@@ -24,6 +25,16 @@ export function activate(context: vscode.ExtensionContext) {
   })
 
   context.subscriptions.push(emojiCommandDisposable)
+
+  // Register the developer command to dump all definitions
+  const dumpDefinitionsCommandDisposable = vscode.commands.registerCommand(
+    'emily.dumpDefinitions',
+    async () => {
+      await dumpAllDefinitions()
+    }
+  )
+
+  context.subscriptions.push(dumpDefinitionsCommandDisposable)
 }
 
 export function deactivate() {}

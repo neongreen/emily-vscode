@@ -1,6 +1,6 @@
 -- Test file for cross-file jump to definition functionality
 -- This file imports and uses definitions from Test module
-
+emily-vscode/samples/test.hs:6
 import Test
 
 -- Function that uses factorial from Test module
