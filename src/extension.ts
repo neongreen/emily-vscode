@@ -44,6 +44,10 @@ export function activate(context: vscode.ExtensionContext) {
     const headerPrefix = headerMatch[1]
     const headerContent = headerMatch[2]
 
+    // Calculate cursor position relative to the header content
+    const headerPrefixLength = headerPrefix.length + 1 // +1 for the space
+    const cursorInContent = position.character - headerPrefixLength
+
     // Check if there's already an emoji at the start of the header content
     const emojiMatch = headerContent.match(/^(\S+)\s*(.*)$/)
     let currentEmoji = ""
@@ -56,6 +60,17 @@ export function activate(context: vscode.ExtensionContext) {
         currentEmoji = firstWord
         remainingContent = emojiMatch[2]
       }
+    }
+
+    // Calculate cursor position relative to the remaining content (after emoji)
+    let cursorInRemainingContent: number
+    if (currentEmoji === "") {
+      // No emoji, cursor is relative to the entire header content
+      cursorInRemainingContent = cursorInContent
+    } else {
+      // Emoji present, calculate cursor position relative to content after emoji
+      const emojiLength = currentEmoji.length + 1 // +1 for the space
+      cursorInRemainingContent = Math.max(0, cursorInContent - emojiLength)
     }
 
     // Find the next emoji in the cycle
@@ -93,9 +108,38 @@ export function activate(context: vscode.ExtensionContext) {
       line.lineNumber,
       line.text.length
     )
-    editor.edit((editBuilder) => {
-      editBuilder.replace(range, newLineText)
-    })
+
+    editor
+      .edit((editBuilder) => {
+        editBuilder.replace(range, newLineText)
+      })
+      .then(() => {
+        // Calculate new cursor position
+        let newCursorPosition: number
+
+        if (nextEmoji === "") {
+          // Emoji was removed, cursor position stays the same relative to content
+          newCursorPosition =
+            headerPrefixLength + Math.max(0, cursorInRemainingContent)
+        } else if (currentEmoji === "") {
+          // Emoji was added, add the new emoji length to the cursor position
+          const emojiLength = nextEmoji.length + 1 // +1 for the space
+          newCursorPosition =
+            headerPrefixLength + emojiLength + Math.max(0, cursorInRemainingContent)
+        } else {
+          // Emoji was changed, add the new emoji length to the cursor position
+          const emojiLength = nextEmoji.length + 1 // +1 for the space
+          newCursorPosition =
+            headerPrefixLength + emojiLength + Math.max(0, cursorInRemainingContent)
+        }
+
+        // Set the new cursor position
+        const newPosition = new vscode.Position(
+          position.line,
+          newCursorPosition
+        )
+        editor.selection = new vscode.Selection(newPosition, newPosition)
+      })
   })
 
   context.subscriptions.push(disposable)
