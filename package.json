@@ -1,0 +1,61 @@
+{
+  "name": "emily",
+  "displayName": "Emily",
+  "description": "VS Code extension with emoji cycling and more features",
+  "version": "1.0.0",
+  "publisher": "emily",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:markdown"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "emily.cycleEmoji",
+        "title": "Emily: Cycle Emoji in Header"
+      }
+    ],
+    "configuration": {
+      "title": "Emily",
+      "properties": {
+        "emily.emojis": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "✅",
+            "🚫",
+            "🟢",
+            "🟡",
+            "🔴"
+          ],
+          "description": "List of emojis to cycle through in markdown headers"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "pnpm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "pnpm run compile && pnpm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "18.x",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "typescript": "^5.0.0"
+  },
+  "packageManager": "pnpm@10.13.1"
+}
