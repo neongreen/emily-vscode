@@ -1,6 +1,5 @@
 -- Test file for cross-file jump to definition functionality
 -- This file imports and uses definitions from Test module
-emily-vscode/samples/test.hs:6
 import Test
 
 -- Function that uses factorial from Test module
@@ -43,6 +42,8 @@ testCrossFileDefinitions = do
   putStrLn $ "Rectangle area: " ++ show (area rect)
   putStrLn $ "Circle perimeter: " ++ show (perimeter circle)
   putStrLn $ "Combination 5 choose 2: " ++ show (combination 5 2)
+
+  print (foo 1 2)
 
 -- Main function for this file
 main :: IO ()

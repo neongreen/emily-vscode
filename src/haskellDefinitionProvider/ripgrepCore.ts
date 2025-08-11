@@ -2,20 +2,26 @@ import { spawn } from 'node:child_process'
 
 export function buildPatterns(identifier: string): string[] {
   return [
-    `^${identifier}\\s*=`,
-    `^${identifier}\\s*::`,
-    `^data\\s+${identifier}\\s+`,
-    `^type\\s+${identifier}\\s+`,
-    `^newtype\\s+${identifier}\\s+`,
-    `^class\\s+${identifier}\\s+`,
+    // Prefer function type signatures over assignments
+    // Same-line signature: name :: ...
+    `(?m)^${identifier}\\s*::`,
+    // Next-line signature: name\n  :: ...
+    `(?m)^${identifier}\\s*\\r?\\n\\s*::`,
+    // Assignment/value definition (no signature)
+    `(?m)^${identifier}\\s*=`,
+    // Data/type/newtype/class and related forms
+    `(?m)^data\\s+${identifier}\\s+`,
+    `(?m)^type\\s+${identifier}\\s+`,
+    `(?m)^newtype\\s+${identifier}\\s+`,
+    `(?m)^class\\s+${identifier}\\s+`,
     // Constructor names in data types
-    `^data\\s+\\w+\\s*=\\s*\\w*${identifier}\\w*`,
+    `(?m)^data\\s+\\w+\\s*=\\s*\\w*${identifier}\\w*`,
     // Type family definitions
-    `^type\\s+family\\s+${identifier}\\s+`,
+    `(?m)^type\\s+family\\s+${identifier}\\s+`,
     // Data family definitions
-    `^data\\s+family\\s+${identifier}\\s+`,
+    `(?m)^data\\s+family\\s+${identifier}\\s+`,
     // Pattern synonym definitions (only the signature line)
-    `^pattern\\s+${identifier}\\s+::`,
+    `(?m)^pattern\\s+${identifier}\\s+::`,
   ]
 }
 
@@ -34,8 +40,10 @@ export function parseRipgrepJson(jsonOutput: string): RipgrepJsonMatch[] {
       if (event.type === 'match') {
         const filePath: string = event.data.path?.text ?? 'stdin'
         const lineNumber: number = event.data.line_number
-        const lineText: string = (event.data.lines?.text as string) ?? ''
-        matches.push({ filePath, lineIndex: Math.max(0, lineNumber - 1), lineText })
+        const rawText: string = (event.data.lines?.text as string) ?? ''
+        // Normalize: keep only the first line of a (potentially) multi-line match
+        const firstLine = rawText.replace(/\r?\n$/, '').split(/\r?\n/)[0] ?? ''
+        matches.push({ filePath, lineIndex: Math.max(0, lineNumber - 1), lineText: firstLine })
       }
     } catch {
       // ignore invalid JSON lines
@@ -59,6 +67,7 @@ export async function searchTextWithRipgrep(
       '--line-number',
       '--no-heading',
       '--with-filename',
+      '--multiline',
       '--regexp',
       pattern,
       '-',
@@ -67,9 +76,10 @@ export async function searchTextWithRipgrep(
     if (stdout !== null) {
       const matches = parseRipgrepJson(stdout)
       for (const m of matches) {
-        const trimmed = m.lineText.replace(/\r?\n$/, '')
-        results.push({ lineIndex: m.lineIndex, lineText: trimmed })
+        results.push({ lineIndex: m.lineIndex, lineText: m.lineText })
       }
+      // Stop after the first pattern that yields matches to avoid duplicates
+      break
     }
   }
 
@@ -93,12 +103,24 @@ export async function searchFolderWithRipgrep(
     if (fileFiltersCsv && fileFiltersCsv.trim().length > 0) {
       args.push('--glob', `*{${fileFiltersCsv}}`)
     }
-    args.push('--regexp', pattern, '--line-number', '--no-heading', '--with-filename', folderPath)
+    args.push(
+      '--regexp',
+      pattern,
+      '--line-number',
+      '--no-heading',
+      '--with-filename',
+      '--multiline',
+      folderPath
+    )
 
     const stdout = await execRg(args)
     if (stdout !== null) {
       const matches = parseRipgrepJson(stdout)
       collected.push(...matches)
+      // Stop after first matching pattern to reduce duplicates
+      if (matches.length > 0) {
+        break
+      }
     }
   }
 

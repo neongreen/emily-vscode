@@ -34,6 +34,12 @@ area (Rectangle (x1, y1) (x2, y2)) = abs (x2 - x1) * abs (y2 - y1)
 combination :: Integer -> Integer -> Integer
 combination n k = factorial n `div` (factorial k * factorial (n - k))
 
+-- Multiline signature
+foo 
+  :: Int
+  -> Int
+foo = undefined
+
 -- Module level function
 main :: IO ()
 main = do
