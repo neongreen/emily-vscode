@@ -12,7 +12,7 @@ run = "rm -rf out && pnpm run compile && pnpm run esbuild-prod"
 
 [tasks.test]
 description = "Run tests"
-run = "pnpm run test"
+run = "pnpm exec vitest run"
 depends = ["build"]
 
 [tasks.lint]
@@ -23,13 +23,13 @@ run = "pnpm run lint"
 description = "Package VS Code extension (development)"
 run = """
   TIMESTAMP=$(date +'%Y%m%d-%H%M%S')
-  pnpm exec vsce package --no-dependencies --out out/emily.vsix --no-yarn --no-git-tag-version "1.0.0-$TIMESTAMP"
+  pnpm exec vsce package --no-dependencies --out out/emily.vsix --no-yarn --no-git-tag-version --no-update-package-json "1.0.0-$TIMESTAMP"
 """
 depends = ["build"]
 
 [tasks."package:prod"]
 description = "Package VS Code extension with minification (production)"
-run = "pnpm exec vsce package --no-dependencies --out out/emily.vsix --no-yarn --no-git-tag-version"
+run = "pnpm exec vsce package --no-dependencies --out out/emily.vsix --no-yarn --no-git-tag-version --no-update-package-json"
 depends = ["build:prod"]
 
 [tasks."install:code"]

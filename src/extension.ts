@@ -1,3 +1,4 @@
+import { execa } from 'execa'
 import * as vscode from 'vscode'
 import { dumpAllDefinitions } from './commands/dumpDefinitions'
 import { cycleEmoji } from './emojiCycler'
@@ -9,10 +10,21 @@ export let emilyOutputChannel: vscode.OutputChannel
 // Keep track of definition provider disposables
 const definitionProviderDisposables: vscode.Disposable[] = []
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
   // Create the output channel
   emilyOutputChannel = vscode.window.createOutputChannel('Emily')
   emilyOutputChannel.appendLine('Emily VSCode Extension is now active!')
+
+  // Preflight: ensure ripgrep is available in PATH
+  const ripgrepOk = await checkRipgrepAvailability()
+  if (!ripgrepOk) {
+    const message =
+      'Emily: ripgrep (rg) is required but was not found in PATH. Please install ripgrep. On macOS: brew install ripgrep.'
+    emilyOutputChannel.appendLine(message)
+    vscode.window.showErrorMessage(message)
+    // Do not register providers/commands if rg is missing
+    return
+  }
 
   // Register the definition provider for all configured languages
   const definitionProvider = new DefinitionProvider()
@@ -76,5 +88,15 @@ export function deactivate() {
   // Clean up definition provider disposables
   if (definitionProviderDisposables) {
     definitionProviderDisposables.forEach((disposable) => disposable.dispose())
+  }
+}
+
+async function checkRipgrepAvailability(): Promise<boolean> {
+  try {
+    const { stdout } = await execa('rg', ['--version'], { timeout: 5000 })
+    emilyOutputChannel.appendLine(`Emily: ripgrep available: ${stdout.trim().split('\n')[0]}`)
+    return true
+  } catch {
+    return false
   }
 }

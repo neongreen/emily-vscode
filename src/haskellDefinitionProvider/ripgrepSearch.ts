@@ -1,8 +1,29 @@
 import { execa } from 'execa'
 import * as vscode from 'vscode'
 import { emilyOutputChannel } from '../extension'
+import {
+  buildPatterns,
+  searchFolderWithRipgrep,
+  searchTextWithRipgrep as searchTextWithRipgrepCore,
+} from './ripgrepCore'
 
 export class RipgrepSearch {
+  async searchInCurrentBuffer(
+    identifier: string,
+    document: vscode.TextDocument
+  ): Promise<vscode.Location[]> {
+    const content = document.getText()
+    if (!content) return []
+
+    const coreResults = await searchTextWithRipgrepCore(identifier, content)
+    const mapped = coreResults.map(({ lineIndex, lineText }) => {
+      const range = new vscode.Range(lineIndex, 0, lineIndex, lineText.length)
+      return new vscode.Location(document.uri, range)
+    })
+
+    return mapped
+  }
+
   async search(
     identifier: string,
     languageId: string,
@@ -27,16 +48,7 @@ export class RipgrepSearch {
 
     const workspaceRoot = workspaceFolders[0].uri.fsPath
     const results: vscode.Location[] = []
-
-    // Build ripgrep command with proper patterns
-    const patterns = [
-      `^${identifier}\\s*=`, // Function definitions
-      `^${identifier}\\s*::`, // Type signatures
-      `^data\\s+${identifier}\\s+`, // Data type definitions
-      `^type\\s+${identifier}\\s+`, // Type aliases
-      `^newtype\\s+${identifier}\\s+`, // Newtype definitions
-      `^class\\s+${identifier}\\s+`, // Class definitions
-    ]
+    const patterns = buildPatterns(identifier)
 
     emilyOutputChannel.appendLine(`Emily: Searching for patterns: ${patterns.join(', ')}`)
 
@@ -53,66 +65,23 @@ export class RipgrepSearch {
         )
       } catch (_rgError) {
         emilyOutputChannel.appendLine(
-          'Emily: ripgrep not available, falling back to VS Code search'
+          'Emily: ripgrep (rg) is not available in PATH. This extension requires ripgrep to function.'
         )
-        throw new Error('ripgrep not available')
+        throw new Error('ripgrep is required but not available in PATH')
       }
 
-      for (const pattern of patterns) {
-        const args = [
-          '--glob',
-          `*{${fileFilters}}`,
-          '--regexp',
-          pattern,
-          '--line-number',
-          '--no-heading',
-          '--with-filename',
-          workspaceRoot,
-        ]
-
-        emilyOutputChannel.appendLine(`Emily: Executing ripgrep:`)
-        emilyOutputChannel.appendLine(`  rg ${args.join(' ')}`)
-
-        try {
-          const { stdout } = await execa('rg', args, { timeout: 10000 })
-
-          if (stdout.trim()) {
-            const lines = stdout.trim().split('\n')
-            for (const line of lines) {
-              // Parse ripgrep output: filename:line:content
-              const match = line.match(/^(.+):(\d+):(.+)$/)
-              if (match) {
-                const [, filePath, lineNum, content] = match
-                const fullPath = filePath.startsWith('/')
-                  ? filePath
-                  : `${workspaceRoot}/${filePath}`
-
-                // Skip the current file
-                if (fullPath === currentFilePath) {
-                  continue
-                }
-
-                const uri = vscode.Uri.file(fullPath)
-                const lineIndex = parseInt(lineNum) - 1
-                const range = new vscode.Range(lineIndex, 0, lineIndex, content.length)
-                const location = new vscode.Location(uri, range)
-                results.push(location)
-
-                emilyOutputChannel.appendLine(
-                  `Emily: Found definition in ${filePath} at line ${lineNum}`
-                )
-              }
-            }
-          }
-        } catch (execError: any) {
-          // ripgrep might not be available or might fail, log but continue
-          if (execError.code !== 1) {
-            // ripgrep returns 1 when no matches found
-            emilyOutputChannel.appendLine(
-              `Emily: ripgrep error for pattern "${pattern}": ${execError.message}`
-            )
-          }
-        }
+      const matches = await searchFolderWithRipgrep(identifier, workspaceRoot, fileFilters)
+      for (const m of matches) {
+        const fullPath = m.filePath.startsWith('/') ? m.filePath : `${workspaceRoot}/${m.filePath}`
+        if (fullPath === currentFilePath) continue
+        const uri = vscode.Uri.file(fullPath)
+        const range = new vscode.Range(
+          m.lineIndex,
+          0,
+          m.lineIndex,
+          m.lineText.replace(/\r?\n$/, '').length
+        )
+        results.push(new vscode.Location(uri, range))
       }
 
       // Remove duplicates based on file path and line number
@@ -127,4 +96,11 @@ export class RipgrepSearch {
       throw error
     }
   }
+}
+
+export async function searchTextWithRipgrep(
+  identifier: string,
+  content: string
+): Promise<Array<{ lineIndex: number; lineText: string }>> {
+  return searchTextWithRipgrepCore(identifier, content)
 }
