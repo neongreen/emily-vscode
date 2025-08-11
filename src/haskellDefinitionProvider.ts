@@ -1,8 +1,8 @@
 import * as vscode from 'vscode'
 import { emilyOutputChannel } from './extension'
 
-// Haskell jump to definition provider
-export class HaskellDefinitionProvider implements vscode.DefinitionProvider {
+// Generic definition provider that works with configurable file extensions
+export class DefinitionProvider implements vscode.DefinitionProvider {
   provideDefinition(
     document: vscode.TextDocument,
     position: vscode.Position,
@@ -57,19 +57,29 @@ export class HaskellDefinitionProvider implements vscode.DefinitionProvider {
       return definitions
     }
 
-    // If not found in current document, search in other Haskell files in the workspace
+    // If not found in current document, search in other files in the workspace
     if (definitions.length === 0) {
       emilyOutputChannel.appendLine(`Emily: Not found in current file, searching workspace...`)
 
+      // Get the language ID and corresponding file extensions
+      const languageId = document.languageId
+      const config = vscode.workspace.getConfiguration('emily')
+      const languageFileExtensions = config.get<Record<string, string[]>>('languageFileExtensions', {})
+      const fileExtensions = languageFileExtensions[languageId] || ['*.hs'] // fallback to .hs files
+
+      emilyOutputChannel.appendLine(`Emily: Language: ${languageId}, searching in: ${fileExtensions.join(', ')}`)
+
       // Return a promise that will resolve with the definitions
       return new Promise<vscode.Location[]>((resolve) => {
-        vscode.workspace.findFiles('**/*.hs', '**/node_modules/**').then((haskellFiles) => {
+        // Create a glob pattern for all relevant file extensions
+        const globPattern = `**/{${fileExtensions.join(',')}}`
+        vscode.workspace.findFiles(globPattern, '**/node_modules/**').then((files) => {
           emilyOutputChannel.appendLine(
-            `Emily: Found ${haskellFiles.length} Haskell files in workspace`
+            `Emily: Found ${files.length} relevant files in workspace`
           )
 
           let filesProcessed = 0
-          const totalFiles = haskellFiles.filter((uri) => uri.fsPath !== document.uri.fsPath).length
+          const totalFiles = files.filter((uri) => uri.fsPath !== document.uri.fsPath).length
           const crossFileDefinitions: vscode.Location[] = []
           const crossFileTypeSignatures: vscode.Location[] = []
 
@@ -79,7 +89,7 @@ export class HaskellDefinitionProvider implements vscode.DefinitionProvider {
             return
           }
 
-          for (const fileUri of haskellFiles) {
+          for (const fileUri of files) {
             // Skip the current file since we already searched it
             if (fileUri.fsPath === document.uri.fsPath) {
               continue

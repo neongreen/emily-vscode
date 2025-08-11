@@ -15,8 +15,7 @@
     "Other"
   ],
   "activationEvents": [
-    "onLanguage:markdown",
-    "onLanguage:haskell"
+    "onStartupFinished"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -29,7 +28,7 @@
       {
         "command": "emily.dumpDefinitions",
         "title": "Emily: Dump All Definitions (Developer)",
-        "enablement": "editorLangId == haskell"
+        "enablement": "true"
       }
     ],
     "keybindings": [
@@ -56,6 +55,25 @@
             "🔴"
           ],
           "description": "List of emojis to cycle through in markdown headers"
+        },
+        "emily.languageFileExtensions": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "default": {
+            "haskell": [
+              "*.hs"
+            ],
+            "mu": [
+              "*.hs",
+              "*.mu"
+            ]
+          },
+          "description": "Mapping of language IDs to file extensions for definition searching"
         }
       }
     }

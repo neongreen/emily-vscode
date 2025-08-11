@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 import { emilyOutputChannel } from '../extension'
-import { HaskellDefinitionProvider } from '../haskellDefinitionProvider'
+import { DefinitionProvider } from '../haskellDefinitionProvider'
 
 // Developer command to dump all definitions for identifiers in the current file
 export async function dumpAllDefinitions() {
@@ -11,8 +11,13 @@ export async function dumpAllDefinitions() {
   }
 
   const document = editor.document
-  if (document.languageId !== 'haskell') {
-    vscode.window.showErrorMessage('Current file is not a Haskell file')
+  const config = vscode.workspace.getConfiguration('emily')
+  const languageFileExtensions = config.get<Record<string, string[]>>('languageFileExtensions', {})
+
+  if (!languageFileExtensions[document.languageId]) {
+    vscode.window.showErrorMessage(
+      `Current file language '${document.languageId}' is not configured for definition searching`
+    )
     return
   }
 
@@ -74,7 +79,7 @@ export async function dumpAllDefinitions() {
     }
 
     // Test the definition provider for each occurrence
-    const definitionProvider = new HaskellDefinitionProvider()
+    const definitionProvider = new DefinitionProvider()
     const allDefinitions = new Set<string>() // Use Set to avoid duplicates
 
     for (const matchIndex of matches) {
