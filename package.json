@@ -89,8 +89,7 @@
     "esbuild-base": "esbuild src/extension.ts --bundle --outfile=out/extension.js --external:vscode --platform=node --target=node20",
     "esbuild-prod": "pnpm run esbuild-base -- --minify",
     "watch": "tsc -watch -p ./ --noEmit",
-    "lint": "biome lint .",
-    "test": "tsx test/cursor-position.test.ts"
+    "lint": "biome lint ."
   },
   "dependencies": {
     "execa": "9.3.1"

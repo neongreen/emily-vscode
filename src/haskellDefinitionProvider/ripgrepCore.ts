@@ -1,67 +1,113 @@
 import { spawn } from 'node:child_process'
 
-export function buildPatterns(identifier: string): string[] {
+export type PatternKind =
+  | 'function_signature_same_line'
+  | 'function_signature_next_line'
+  | 'assignment_definition'
+  | 'data_definition'
+  | 'type_definition'
+  | 'newtype_definition'
+  | 'class_definition'
+  | 'constructor'
+  | 'type_family'
+  | 'data_family'
+  | 'pattern_synonym'
+
+// TODO: add tests that will catch that we aren't using \b properly
+
+export function buildPatterns(identifier: string): { kind: PatternKind; pattern: string }[] {
   return [
-    // Prefer function type signatures over assignments
-    // Same-line signature: name :: ...
-    `(?m)^${identifier}\\s*::`,
-    // Next-line signature: name\n  :: ...
-    `(?m)^${identifier}\\s*\\r?\\n\\s*::`,
-    // Assignment/value definition (no signature)
-    `(?m)^${identifier}\\s*=`,
-    // Data/type/newtype/class and related forms
-    `(?m)^data\\s+${identifier}\\s+`,
-    `(?m)^type\\s+${identifier}\\s+`,
-    `(?m)^newtype\\s+${identifier}\\s+`,
-    `(?m)^class\\s+${identifier}\\s+`,
-    // Constructor names in data types
-    `(?m)^data\\s+\\w+\\s*=\\s*\\w*${identifier}\\w*`,
-    // Type family definitions
-    `(?m)^type\\s+family\\s+${identifier}\\s+`,
-    // Data family definitions
-    `(?m)^data\\s+family\\s+${identifier}\\s+`,
-    // Pattern synonym definitions (only the signature line)
-    `(?m)^pattern\\s+${identifier}\\s+::`,
+    // name :: ...
+    { kind: 'function_signature_same_line', pattern: `(?m)^${identifier}\\s*::` },
+    // name\n  :: ...
+    { kind: 'function_signature_next_line', pattern: `(?m)^${identifier}\\s*\\r?\\n\\s*::` },
+    // name = ...
+    { kind: 'assignment_definition', pattern: `(?m)^${identifier}\\s*=` },
+    // data/type/newtype/class
+    { kind: 'data_definition', pattern: `(?m)^data\\s+${identifier}\\s+` },
+    { kind: 'type_definition', pattern: `(?m)^type\\s+${identifier}\\s+` },
+    { kind: 'newtype_definition', pattern: `(?m)^newtype\\s+${identifier}\\s+` },
+    { kind: 'class_definition', pattern: `(?m)^class\\s+${identifier}\\s+` },
+    // constructor names:
+    //   data ... = NAME
+    //   data ... | NAME
+    // we can skip arbitrary amount of lines as long as they are indented
+    {
+      kind: 'constructor',
+      pattern: `(?mx)
+          ^data\\b
+          # now we might do nothing or 'skip this line, check next line is indented' a few times
+          (?: .* \\n [\\x20\\t]+ )*?
+          # whatever line we landed on, we will either find it here or it'll be like |<newline>(here)
+          .*? [|=] \\s* ${identifier}\\b
+      `,
+    },
+    // type family
+    { kind: 'type_family', pattern: `(?m)^type\\s+family\\s+${identifier}\\s+` },
+    // data family
+    { kind: 'data_family', pattern: `(?m)^data\\s+family\\s+${identifier}\\s+` },
+    // pattern synonym (only the signature line)
+    { kind: 'pattern_synonym', pattern: `(?m)^pattern\\s+${identifier}\\s+::` },
   ]
 }
 
-export type RipgrepJsonMatch = {
-  filePath: string
-  lineIndex: number
-  lineText: string
-}
+export type Match = { kind: PatternKind; lineIndex: number; lineText: string; filePath: string }
 
-export function parseRipgrepJson(jsonOutput: string): RipgrepJsonMatch[] {
-  const matches: RipgrepJsonMatch[] = []
-  const lines = jsonOutput.split('\n').filter((l) => l.trim().length > 0)
-  for (const line of lines) {
-    try {
-      const event = JSON.parse(line)
-      if (event.type === 'match') {
-        const filePath: string = event.data.path?.text ?? 'stdin'
-        const lineNumber: number = event.data.line_number
-        const rawText: string = (event.data.lines?.text as string) ?? ''
-        // Normalize: keep only the first line of a (potentially) multi-line match
-        const firstLine = rawText.replace(/\r?\n$/, '').split(/\r?\n/)[0] ?? ''
-        matches.push({ filePath, lineIndex: Math.max(0, lineNumber - 1), lineText: firstLine })
+export function parseRipgrepJson(
+  jsonOutput: string,
+  patternKind?: PatternKind
+): { lineIndex: number; lineText: string; filePath: string }[] {
+  return jsonOutput
+    .split('\n')
+    .filter((l) => l.trim().length > 0)
+    .map((line) => {
+      try {
+        const event = JSON.parse(line)
+        if (event.type === 'match') {
+          const filePath: string = event.data.path?.text ?? 'stdin'
+          const lineNumber: number = event.data.line_number
+          const rawText: string = (event.data.lines?.text as string) ?? ''
+
+          // For constructors, we need the last line since the constructor name appears at the end
+          // For everything else, take the first line
+          const lines = rawText.replace(/\r?\n$/, '').split(/\r?\n/)
+
+          let targetLine: string
+          let targetLineIndex: number
+
+          if (patternKind === 'constructor' && lines.length > 1) {
+            // For constructors, take the last line
+            targetLine = lines[lines.length - 1] ?? ''
+            targetLineIndex = Math.max(0, lineNumber - 1 + lines.length - 1)
+          } else {
+            // For everything else, take the first line
+            targetLine = lines[0] ?? ''
+            targetLineIndex = Math.max(0, lineNumber - 1)
+          }
+
+          return {
+            filePath,
+            lineIndex: targetLineIndex,
+            lineText: targetLine,
+          }
+        }
+      } catch {
+        // ignore invalid JSON lines
       }
-    } catch {
-      // ignore invalid JSON lines
-    }
-  }
-  return matches
+      return undefined
+    })
+    .filter((x): x is { lineIndex: number; lineText: string; filePath: string } => !!x)
 }
 
-export async function searchTextWithRipgrep(
-  identifier: string,
-  content: string
-): Promise<Array<{ lineIndex: number; lineText: string }>> {
+export async function searchTextWithRipgrep(identifier: string, content: string): Promise<Match[]> {
   if (!content) return []
 
   const patterns = buildPatterns(identifier)
-  const results: Array<{ lineIndex: number; lineText: string }> = []
+  const allMatches: Match[] = []
 
-  for (const pattern of patterns) {
+  // Collect all matches from all patterns
+  for (let i = 0; i < patterns.length; i++) {
+    const { pattern, kind } = patterns[i]
     const args = [
       '--json',
       '--line-number',
@@ -74,31 +120,28 @@ export async function searchTextWithRipgrep(
     ]
     const stdout = await execRg(args, content)
     if (stdout !== null) {
-      const matches = parseRipgrepJson(stdout)
+      const matches = parseRipgrepJson(stdout, kind)
       for (const m of matches) {
-        results.push({ lineIndex: m.lineIndex, lineText: m.lineText })
+        allMatches.push({ kind, ...m })
       }
-      // Stop after the first pattern that yields matches to avoid duplicates
-      break
     }
   }
 
-  // Deduplicate by line index
-  const unique = results.filter(
-    (r, i, arr) => arr.findIndex((x) => x.lineIndex === r.lineIndex) === i
-  )
-  return unique
+  // For single text buffer, just find the best match from all matches
+  return allMatches.length > 0 ? [findBestMatch(allMatches)] : []
 }
 
 export async function searchFolderWithRipgrep(
   identifier: string,
   folderPath: string,
   fileFiltersCsv?: string
-): Promise<RipgrepJsonMatch[]> {
+): Promise<Match[]> {
   const patterns = buildPatterns(identifier)
-  const collected: RipgrepJsonMatch[] = []
+  const allMatches: Match[] = []
 
-  for (const pattern of patterns) {
+  // Collect all matches from all patterns
+  for (let i = 0; i < patterns.length; i++) {
+    const { pattern, kind } = patterns[i]
     const args = ['--json']
     if (fileFiltersCsv && fileFiltersCsv.trim().length > 0) {
       args.push('--glob', `*{${fileFiltersCsv}}`)
@@ -115,22 +158,43 @@ export async function searchFolderWithRipgrep(
 
     const stdout = await execRg(args)
     if (stdout !== null) {
-      const matches = parseRipgrepJson(stdout)
-      collected.push(...matches)
-      // Stop after first matching pattern to reduce duplicates
-      if (matches.length > 0) {
-        break
+      const matches = parseRipgrepJson(stdout, kind)
+      for (const m of matches) {
+        allMatches.push({ kind, ...m })
       }
     }
   }
 
-  // Deduplicate by file + line
-  const unique = collected.filter((r, i, arr) => {
-    const key = `${r.filePath}:${r.lineIndex}`
-    return arr.findIndex((x) => `${x.filePath}:${x.lineIndex}` === key) === i
-  })
+  // Group by file and find best match per file
+  const fileGroups = new Map<string, Match[]>()
+  for (const match of allMatches) {
+    const key = match.filePath
+    if (!fileGroups.has(key)) {
+      fileGroups.set(key, [])
+    }
+    fileGroups.get(key)!.push(match)
+  }
 
-  return unique
+  const results: Match[] = []
+  for (const [_, fileMatches] of fileGroups) {
+    const bestMatch = findBestMatch(fileMatches)
+    if (bestMatch) {
+      results.push(bestMatch)
+    }
+  }
+
+  return results
+}
+
+export function findBestMatch(matches: Match[]): Match {
+  // For functions, if we have the signature and the definition, we want the signature.
+  if (
+    matches.map((m) => m.kind).includes('function_signature_same_line') ||
+    matches.map((m) => m.kind).includes('function_signature_next_line')
+  ) {
+    matches = matches.filter((m) => m.kind !== 'assignment_definition')
+  }
+  return matches[0]
 }
 
 function execRg(args: string[], stdinInput?: string): Promise<string | null> {

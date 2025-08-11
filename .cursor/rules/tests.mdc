@@ -1,0 +1,7 @@
+---
+alwaysApply: true
+---
+
+Never run tests with `pnpm exec vitest` or `pnpm test`.
+They run 10x slower for some reason.
+Instead, use `mise test`.
