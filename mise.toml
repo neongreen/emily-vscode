@@ -4,7 +4,11 @@ pnpm = "latest"
 
 [tasks.build]
 description = "Build"
-run = "pnpm run compile"
+run = "rm -rf out && pnpm run compile && pnpm run esbuild-base"
+
+[tasks."build:prod"]
+description = "Build production"
+run = "rm -rf out && pnpm run compile && pnpm run esbuild-prod"
 
 [tasks.test]
 description = "Run tests"
@@ -16,16 +20,24 @@ description = "Run lint"
 run = "pnpm run lint"
 
 [tasks.package]
-description = "Package VS Code extension"
-run = "pnpm exec vsce package --no-yarn --no-git-tag-version --out out/"
+description = "Package VS Code extension (development)"
+run = """
+  TIMESTAMP=$(date +'%Y%m%d-%H%M%S')
+  pnpm exec vsce package --no-dependencies --out out/emily.vsix --no-yarn --no-git-tag-version "1.0.0-$TIMESTAMP"
+"""
 depends = ["build"]
+
+[tasks."package:prod"]
+description = "Package VS Code extension with minification (production)"
+run = "pnpm exec vsce package --no-dependencies --out out/emily.vsix --no-yarn --no-git-tag-version"
+depends = ["build:prod"]
 
 [tasks."install:code"]
 description = "Install VS Code extension"
-run = "code --install-extension out/emily-1.0.0.vsix"
+run = "code --install-extension out/emily.vsix"
 depends = ["package"]
 
 [tasks."install:cursor"]
 description = "Install Cursor extension"
-run = "cursor --install-extension out/emily-1.0.0.vsix"
+run = "cursor --install-extension out/emily.vsix"
 depends = ["package"]
