@@ -63,7 +63,7 @@ export class RipgrepSearch {
       }
 
       for (const pattern of patterns) {
-        const command = `rg --type-add 'haskell:*.{${fileFilters}}' --type haskell --regexp '${pattern}' --line-number --no-heading --with-filename '${workspaceRoot}'`
+        const command = `rg --glob '*.{${fileFilters}}' --regexp '${pattern}' --line-number --no-heading --with-filename '${workspaceRoot}'`
 
         emilyOutputChannel.appendLine(`Emily: Executing ripgrep:`)
         emilyOutputChannel.appendLine(`  ${command}`)
