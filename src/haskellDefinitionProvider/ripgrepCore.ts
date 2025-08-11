@@ -8,6 +8,14 @@ export function buildPatterns(identifier: string): string[] {
     `^type\\s+${identifier}\\s+`,
     `^newtype\\s+${identifier}\\s+`,
     `^class\\s+${identifier}\\s+`,
+    // Constructor names in data types
+    `^data\\s+\\w+\\s*=\\s*\\w*${identifier}\\w*`,
+    // Type family definitions
+    `^type\\s+family\\s+${identifier}\\s+`,
+    // Data family definitions
+    `^data\\s+family\\s+${identifier}\\s+`,
+    // Pattern synonym definitions (only the signature line)
+    `^pattern\\s+${identifier}\\s+::`,
   ]
 }
 

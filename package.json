@@ -84,6 +84,7 @@
     }
   },
   "scripts": {
+    "pretest": "pnpm compile",
     "compile": "tsc -p ./",
     "esbuild-base": "esbuild src/extension.ts --bundle --outfile=out/extension.js --external:vscode --platform=node --target=node20",
     "esbuild-prod": "pnpm run esbuild-base -- --minify",
@@ -99,6 +100,7 @@
     "@types/node": "^24.0.0",
     "@types/vscode": "^1.85.0",
     "@vscode/vsce": "^3.6.0",
+    "dedent": "^1.6.0",
     "esbuild": "^0.25.8",
     "tsx": "^4.20.3",
     "typescript": "^5.9.2",
