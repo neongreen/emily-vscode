@@ -31,6 +31,30 @@ A VS Code extension with multiple features including emoji cycling in markdown h
 
 **Note**: This feature assumes you already have the Haskell extension installed for syntax highlighting. It provides a lightweight alternative when a full language server is not available.
 
+### Performance Optimization
+
+For optimal performance when searching across multiple files, the extension uses **ripgrep** (`rg`) if available. This provides significantly faster search times compared to VS Code's built-in file search.
+
+**To enable ripgrep optimization:**
+1. Install ripgrep: `brew install ripgrep` (macOS) or `apt install ripgrep` (Ubuntu/Debian)
+2. The extension will automatically detect and use ripgrep for faster searches
+3. If ripgrep is not available, it falls back to VS Code's built-in search
+
+**Performance comparison:**
+- **With ripgrep**: Searches thousands of files in seconds
+- **Without ripgrep**: Searches files one by one (slower, but still functional)
+
+### Troubleshooting
+
+**Slow search performance:**
+- Install ripgrep for faster searches: `brew install ripgrep` (macOS) or `apt install ripgrep` (Ubuntu/Debian)
+- The extension will automatically use ripgrep when available
+
+**Search warnings/errors:**
+- Most warnings about "reading file" or "assertion failed" are normal when ripgrep is not available
+- These warnings indicate the extension is falling back to VS Code's built-in search
+- Install ripgrep to eliminate these warnings and improve performance
+
 ## Configuration
 
 You can customize the emojis by adding this to your VS Code settings:
