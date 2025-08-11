@@ -61,19 +61,19 @@ jobs:
       - name: Package extension
         run: vsce package --no-yarn --no-git-tag-version
 
-      - name: Create zip archive
+      - name: Create extensionless copy
         run: |
           # Get the VSIX filename
           VSIX_FILE=$(ls *.vsix)
-          # Create zip with the same name but .zip extension
-          zip "${VSIX_FILE%.vsix}.zip" "$VSIX_FILE"
+          # Create a copy with no extension
+          cp "$VSIX_FILE" "${VSIX_FILE%.vsix}"
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
             *.vsix
-            *.zip
+            emily-*
           generate_release_notes: true
           draft: false
           prerelease: false

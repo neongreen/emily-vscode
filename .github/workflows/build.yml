@@ -60,12 +60,12 @@ jobs:
       - name: Package extension
         run: vsce package --no-yarn --no-git-tag-version
 
-      - name: Create zip archive
+      - name: Create extensionless copy
         run: |
           # Get the VSIX filename
           VSIX_FILE=$(ls *.vsix)
-          # Create zip with the same name but .zip extension
-          zip "${VSIX_FILE%.vsix}.zip" "$VSIX_FILE"
+          # Create a copy with no extension
+          cp "$VSIX_FILE" "${VSIX_FILE%.vsix}"
 
       - name: Upload VSIX as artifact
         uses: actions/upload-artifact@v4
@@ -73,7 +73,7 @@ jobs:
           name: emily-vsix
           path: |
             *.vsix
-            *.zip
+            emily-*
           retention-days: 30
 
       - name: Create development release
@@ -92,7 +92,7 @@ jobs:
             - Build Date: ${{ github.event.head_commit.timestamp }}
           files: |
             *.vsix
-            *.zip
+            emily-*
           draft: false
           prerelease: true
           generate_release_notes: false
