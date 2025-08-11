@@ -28,7 +28,7 @@ jobs:
           mise install
 
       - name: Install dependencies
-        run: mise exec pnpm -- install --frozen-lockfile
+        run: mise exec -- pnpm install --frozen-lockfile
 
       - name: Test
         run: mise run test
