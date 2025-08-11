@@ -88,6 +88,9 @@
     "check": "biome check .",
     "test": "tsx test/cursor-position.test.ts"
   },
+  "dependencies": {
+    "execa": "^8.0.1"
+  },
   "devDependencies": {
     "@biomejs/biome": "^2.1.3",
     "@types/node": "^24.0.0",

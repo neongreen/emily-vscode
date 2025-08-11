@@ -1,3 +1,4 @@
+import { execa } from 'execa'
 import * as vscode from 'vscode'
 import { emilyOutputChannel } from '../extension'
 
@@ -40,18 +41,13 @@ export class RipgrepSearch {
     emilyOutputChannel.appendLine(`Emily: Searching for patterns: ${patterns.join(', ')}`)
 
     // Create file type filters for ripgrep
-    const fileFilters = fileExtensions.map((ext) => ext.replace('*', '')).join('|')
+    const fileFilters = fileExtensions.map((ext) => ext.replace('*', '')).join(',')
     emilyOutputChannel.appendLine(`Emily: File extensions filter: ${fileFilters}`)
 
     try {
-      // Use ripgrep to search efficiently
-      const { exec } = require('node:child_process')
-      const util = require('node:util')
-      const execAsync = util.promisify(exec)
-
       // Check if ripgrep is available
       try {
-        const { stdout: versionOutput } = await execAsync('rg --version', { timeout: 5000 })
+        const { stdout: versionOutput } = await execa('rg', ['--version'], { timeout: 5000 })
         emilyOutputChannel.appendLine(
           `Emily: ripgrep version: ${versionOutput.trim().split('\n')[0]}`
         )
@@ -63,13 +59,22 @@ export class RipgrepSearch {
       }
 
       for (const pattern of patterns) {
-        const command = `rg --glob '*.{${fileFilters}}' --regexp '${pattern}' --line-number --no-heading --with-filename '${workspaceRoot}'`
+        const args = [
+          '--glob',
+          `*{${fileFilters}}`,
+          '--regexp',
+          pattern,
+          '--line-number',
+          '--no-heading',
+          '--with-filename',
+          workspaceRoot,
+        ]
 
         emilyOutputChannel.appendLine(`Emily: Executing ripgrep:`)
-        emilyOutputChannel.appendLine(`  ${command}`)
+        emilyOutputChannel.appendLine(`  rg ${args.join(' ')}`)
 
         try {
-          const { stdout } = await execAsync(command, { timeout: 10000 })
+          const { stdout } = await execa('rg', args, { timeout: 10000 })
 
           if (stdout.trim()) {
             const lines = stdout.trim().split('\n')
