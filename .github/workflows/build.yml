@@ -20,7 +20,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup mise
-        uses: jdx/mise-action@61c1bfbed63c70a82ff0ce3301bde41875b17844
+        uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac
 
       - name: Install Node.js and pnpm via mise
         run: |
